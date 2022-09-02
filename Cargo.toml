@@ -42,6 +42,8 @@ want = "0.3"
 # Optional
 
 libc = { version = "0.2", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 socket2 = { version = "0.4", optional = true }
 
 [dev-dependencies]
