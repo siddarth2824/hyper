@@ -12,7 +12,8 @@ use std::time::Duration;
 use futures_util::future::Either;
 use http::uri::{Scheme, Uri};
 use pin_project_lite::pin_project;
-use tokio::net::{TcpSocket, TcpStream};
+use tokio::net::TcpSocket;
+use tokio::net::TcpStream
 use tokio::time::Sleep;
 use tracing::{debug, trace, warn};
 
@@ -557,6 +558,7 @@ impl ConnectingTcpRemote {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 fn bind_local_address(
     socket: &socket2::Socket,
     dst_addr: &SocketAddr,
