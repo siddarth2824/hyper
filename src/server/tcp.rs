@@ -3,6 +3,8 @@ use std::io;
 use std::net::{SocketAddr, TcpListener as StdTcpListener};
 use std::time::Duration;
 
+#[cfg(target_os = "wasi")]
+use std::net::{IpAddr, Ipv4Addr};
 use tokio::net::TcpListener;
 use tokio::time::Sleep;
 use tracing::{debug, error, trace};
@@ -25,6 +27,7 @@ pub struct AddrIncoming {
 }
 
 impl AddrIncoming {
+    #[cfg(not(target_os = "wasi"))]
     pub(super) fn new(addr: &SocketAddr) -> crate::Result<Self> {
         let std_listener = StdTcpListener::bind(addr).map_err(crate::Error::new_listen)?;
 
@@ -41,13 +44,17 @@ impl AddrIncoming {
     }
 
     /// Creates a new `AddrIncoming` binding to provided socket address.
+    #[cfg(not(target_os = "wasi"))]
     pub fn bind(addr: &SocketAddr) -> crate::Result<Self> {
         AddrIncoming::new(addr)
     }
 
     /// Creates a new `AddrIncoming` from an existing `tokio::net::TcpListener`.
     pub fn from_listener(listener: TcpListener) -> crate::Result<Self> {
+        #[cfg(not(target_os = "wasi"))]
         let addr = listener.local_addr().map_err(crate::Error::new_listen)?;
+        #[cfg(target_os = "wasi")]
+        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0);
         Ok(AddrIncoming {
             listener,
             addr,
@@ -108,18 +115,26 @@ impl AddrIncoming {
         loop {
             match ready!(self.listener.poll_accept(cx)) {
                 Ok((socket, remote_addr)) => {
-                    if let Some(dur) = self.tcp_keepalive_timeout {
-                        let socket = socket2::SockRef::from(&socket);
-                        let conf = socket2::TcpKeepalive::new().with_time(dur);
-                        if let Err(e) = socket.set_tcp_keepalive(&conf) {
-                            trace!("error trying to set TCP keepalive: {}", e);
+                    #[cfg(not(target_os = "wasi"))]
+                    {
+                        if let Some(dur) = self.tcp_keepalive_timeout {
+                            let socket = socket2::SockRef::from(&socket);
+                            let conf = socket2::TcpKeepalive::new().with_time(dur);
+                            if let Err(e) = socket.set_tcp_keepalive(&conf) {
+                                trace!("error trying to set TCP keepalive: {}", e);
+                            }
                         }
+                        if let Err(e) = socket.set_nodelay(self.tcp_nodelay) {
+                            trace!("error trying to set TCP nodelay: {}", e);
+                        }
+                        let local_addr = socket.local_addr()?;
+                        return Poll::Ready(Ok(AddrStream::new(socket, remote_addr, local_addr)));
                     }
-                    if let Err(e) = socket.set_nodelay(self.tcp_nodelay) {
-                        trace!("error trying to set TCP nodelay: {}", e);
+                    #[cfg(target_os = "wasi")]
+                    {
+                        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0);
+                        return Poll::Ready(Ok(AddrStream::new(socket, remote_addr, local_addr)));
                     }
-                    let local_addr = socket.local_addr()?;
-                    return Poll::Ready(Ok(AddrStream::new(socket, remote_addr, local_addr)));
                 }
                 Err(e) => {
                     // Connection errors can be ignored directly, continue by
@@ -199,6 +214,8 @@ mod addr_stream {
     use std::net::SocketAddr;
     #[cfg(unix)]
     use std::os::unix::io::{AsRawFd, RawFd};
+    #[cfg(target_os = "wasi")]
+    use std::os::wasi::io::{AsRawFd, RawFd};
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::net::TcpStream;
 
@@ -309,7 +326,7 @@ mod addr_stream {
         }
     }
 
-    #[cfg(unix)]
+    #[cfg(any(unix, target_os = "wasi"))]
     impl AsRawFd for AddrStream {
         fn as_raw_fd(&self) -> RawFd {
             self.inner.as_raw_fd()
