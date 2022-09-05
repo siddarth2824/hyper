@@ -102,6 +102,7 @@ runtime = [
     "tokio/time",
 ]
 tcp = [
+    "socket2",
     "tokio/net",
     "tokio/rt",
     "tokio/time",
