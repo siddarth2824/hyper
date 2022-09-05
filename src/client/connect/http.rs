@@ -586,7 +586,6 @@ fn bind_local_address(
     Ok(())
 }
 
-#[cfg(not(target_os = "wasi"))]
 fn connect(
     addr: &SocketAddr,
     config: &Config,
