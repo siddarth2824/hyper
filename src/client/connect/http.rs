@@ -557,7 +557,6 @@ impl ConnectingTcpRemote {
     }
 }
 
-#[cfg(not(target_os = "wasi"))]
 fn bind_local_address(
     socket: &socket2::Socket,
     dst_addr: &SocketAddr,
