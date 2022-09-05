@@ -96,6 +96,14 @@ server = []
 
 # Tokio support
 runtime = [
+<<<<<<< HEAD
+=======
+    "tcp",
+    "tokio/rt",
+    "tokio/time",
+]
+tcp = [
+>>>>>>> 34af58ce (remove socket2 as a dependency)
     "tokio/net",
     "tokio/rt",
     "tokio/time",
