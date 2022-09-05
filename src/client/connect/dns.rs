@@ -118,20 +118,14 @@ impl Service<Name> for GaiResolver {
     }
     
     fn call(&mut self, name: Name) -> Self::Future {
-        #[cfg(not(target_os = "wasi"))]
-        {
-            let blocking = tokio::task::spawn_blocking(move || {
-                debug!("resolving host={:?}", name.host);
-                (&*name.host, 0)
-                    .to_socket_addrs()
-                    .map(|i| SocketAddrs { iter: i })
-            });
-    
-            GaiFuture { inner: blocking }
-        }
-        {
-            GaiFuture { inner:  }
-        }
+        let blocking = tokio::task::spawn_blocking(move || {
+            debug!("resolving host={:?}", name.host);
+            (&*name.host, 0)
+                .to_socket_addrs()
+                .map(|i| SocketAddrs { iter: i })
+        });
+
+        GaiFuture { inner: blocking }
     }
 }
 
