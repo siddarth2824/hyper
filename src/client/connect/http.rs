@@ -531,7 +531,6 @@ impl ConnectingTcpRemote {
 }
 
 impl ConnectingTcpRemote {
-    #[cfg(not(target_os = "wasi"))]
     async fn connect(&mut self, config: &Config) -> Result<TcpStream, ConnectError> {
         let mut err = None;
         for addr in &mut self.addrs {
