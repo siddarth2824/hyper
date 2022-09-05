@@ -51,7 +51,6 @@
 #[cfg(feature = "tcp")]
 pub use self::connect::HttpConnector;
 
-pub mod connect;
 #[cfg(all(test, feature = "runtime"))]
 mod tests;
 
