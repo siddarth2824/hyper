@@ -95,9 +95,6 @@ cfg_feature! {
     #![feature = "client"]
 
     pub mod client;
-    #[cfg(any(feature = "http1", feature = "http2"))]
-    #[doc(no_inline)]
-    pub use crate::client::Client;
 }
 
 cfg_feature! {
